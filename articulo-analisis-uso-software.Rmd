@@ -1,0 +1,536 @@
+---
+title: "Análisis del uso de software en la Encuesta de Inclusión Digital utilizando reglas de asociación"
+author: Milton Loayza Chumacero
+date: 27 de junio de 2024
+bibliography: bibliografia.bib  
+output: pdf_document
+---
+
+```{r load_libraries, results='hide', message=FALSE, warning=FALSE, echo=FALSE} 
+library(kableExtra)
+library(dplyr)
+library(arules)
+options(scipen = 999)
+```
+
+# Introducción
+
+La Agencia de Gobierno Electrónico y Tecnologías de Información y Comunicación (AGETIC) ha emprendido un estudio integral con el objetivo de evaluar y promover la integración de tecnologías de software libre en los métodos de enseñanza-aprendizaje en las Unidades Educativas Públicas. En un mundo cada vez más digitalizado, la inclusión digital se ha convertido en un pilar fundamental para garantizar que todos los estudiantes tengan acceso a las herramientas necesarias para su educación y desarrollo. En ese sentido, se implementa el Programa de Inclusión Digital que busca contribuir a la disminución de las desigualdades y brechas existentes entre los distintos segmentos poblacionales de nuestro país, respecto al acceso y uso de tecnologías y de manera general en el ámbito digital.
+
+Luego de realizar la capacitación a los estudiantes la AGETIC realiza una encuesta a los estudiantes con el objetivo de medir el impacto de la inclusión digital, esta encuesta también contiene datos sobre el uso de software en varias categorías como ser redes sociales, ofimática, diseño, y otras aplicaciones relevantes para el entorno educativo.
+
+Para analizar los patrones de uso y las preferencias de software entre las unidades educativas, se empleará la técnica de minería de datos conocida como reglas de asociación. Esta metodología permitirá descubrir relaciones significativas y recurrentes entre diferentes tipos de software utilizados en las escuelas, proporcionando así una base sólida para recomendaciones estratégicas y la toma de decisiones.
+
+# Objetivos
+
+## Objetivo Principal
+
+Analizar los patrones de uso de software en las Unidades Educativas Públicas mediante la aplicación de reglas de asociación, con el fin de identificar combinaciones de software comunes y proporcionar recomendaciones para la integración efectiva de tecnologías de software libre en el proceso de enseñanza-aprendizaje.
+
+## Objetivos Específicos
+
+- Identificar Combinaciones Frecuentes de Software Utilizado:
+Determinar las combinaciones de software más comúnmente utilizadas en las unidades educativas, incluyendo aplicaciones de redes sociales, ofimática, diseño, y otras categorías relevantes.
+
+- Evaluar la Adopción de Software Libre:
+Comparar el uso de software libre frente a software propietario en las unidades educativas, analizando la adopción y aceptación de tecnologías de código abierto.
+
+- Descubrir Patrones de Preferencia de Software:
+Utilizar técnicas de minería de datos para identificar patrones y preferencias en el uso de software entre diferentes categorías y niveles educativos.
+
+- Proporcionar Recomendaciones Basadas en Datos:
+Ofrecer recomendaciones estratégicas y prácticas para la implementación y optimización del uso de software libre en las unidades educativas, basadas en los patrones y tendencias identificados.
+
+- Promover la Eficiencia y la Colaboración en el Uso de TIC:
+Fomentar la colaboración entre unidades educativas para compartir buenas prácticas y recursos tecnológicos, optimizando el uso de TIC para mejorar la calidad educativa.
+
+
+# Motivación
+
+El avance tecnológico y la digitalización han transformado radicalmente el panorama educativo, haciendo que el acceso y la competencia en el uso de TIC sean esenciales para la formación académica y el desarrollo profesional de los estudiantes. Sin embargo, existe una brecha significativa en la adopción y el uso de tecnologías de software en las unidades educativas públicas, especialmente en lo que respecta al software libre.
+
+La motivación principal detrás de este estudio radica en la necesidad de entender mejor cómo se utilizan las TIC en las escuelas públicas y cómo el software libre puede ser integrado eficazmente en el sistema educativo. Las reglas de asociación proporcionan una herramienta poderosa para descubrir patrones ocultos en el uso del software, lo que permite a los responsables de políticas y educadores tomar decisiones basadas en datos concretos y relevantes.
+
+Realizando un análisis de uso software nos permite identificar cuales son las preferencias de los estudiantes respecto a la adopción del uso de las TIC en su formación integral.
+
+# Marco Teórico
+
+- Definición de Inclusión Digital  
+Inclusión Digital se refiere al proceso de garantizar que todos los individuos y comunidades, incluyendo aquellos más desfavorecidos, tengan acceso a las tecnologías de la información y la comunicación (TIC) y las habilidades necesarias para utilizarlas de manera efectiva
+
+- Inclusión Digital en la AGETIC   
+El Área de Investigación e Innovación Tecnológica de AGETIC dependiente de la Unidad de Gestión y Asistencia Tecnológica (UGAT), a través del laboratorio de investigación, lidera el programa de Inclusión Digital, coordinando los Centros de Capacitación establecidos en diferentes municipios de Bolivia.[@agetic_icnlusion]
+El proyecto consiste en: 
+    - Centros de Capacitación e Innovación Tecnológica 
+Revisa toda la información referida a nuestros Centros de Capacitación e Innovación Tecnológica.
+    - Bootcamp Chicas AppVentureras 
+Programa que nace en colaboración con UNICEF con la finalidad de reducir la brecha digital de Género dentro del área de la programación de aplicaciones móviles.
+    - RobóTICas 
+Proyecto de inclusión digital dirigido a niñas y adolescentes mujeres, a través del cual las participantes adquieren conocimientos básicos de robótica.
+    - First Global Bolivia 
+El torneo First Global Bolivia es un torneo de Robótica que se desarrolla con el objetivo de seleccionar al equipo que representará a Bolivia en el torneo internacional First Global Challenge.
+
+![Inclusión Digital[@agetic_icnlusion]](images/inclusion.png){width=300px}
+
+\
+\
+\
+\
+\
+\
+\
+\
+
+- Reglas de Asociación   
+Las reglas de asociación son una técnica de minería de datos utilizada para descubrir relaciones interesantes y significativas entre variables en grandes bases de datos. Estas reglas identifican patrones frecuentes y asociaciones entre conjuntos de ítems en transacciones de una base de datos. Fueron popularizadas por primera vez en el contexto del análisis de la canasta de mercado, donde se buscaba entender qué productos se compraban juntos con frecuencia.[@han2006data]
+
+- Definición y Conceptos Básicos   
+    - Itemset (Conjunto de Ítems):
+Un conjunto de uno o más ítems. Por ejemplo, en el contexto de una tienda, un itemset podría ser {pan, leche, mantequilla}.
+    - Transacción:
+Un conjunto de ítems comprados juntos en una sola ocasión. En un supermercado, una transacción podría ser la lista de productos comprados por un cliente en una visita.
+    - Soporte (Support):
+El soporte de un itemset es la proporción de transacciones en la base de datos que contienen dicho itemset. Se calcula como:
+$$Support(A) = \frac{Nmero \quad de \quad transacciones \quad que \quad contienen \quad A}{Numero \quad total \quad de \quad transacciones}$$
+Indica la popularidad de un itemset.
+
+    - Confianza (Confidence): 
+La confianza de una regla de asociación $A -> B$ es la proporción de transacciones que contienen $A$ que también contienen $B$. Se calcula como:
+$$Confidence(A -> B) = \frac{Support(A U B)}{Support(A)}$$
+Mide la fiabilidad de la regla.
+
+    - Lift:
+El lift de una regla de asociación es la proporción de la confianza de la regla sobre el soporte de $B$. Se calcula como:
+$$Lift(A -> B) = \frac{Confidence(A->B)}{Support(B)}$$
+Indica el grado en que la presencia de $A$ aumenta la probabilidad de $B$.
+
+    - Algoritmos para la Generación de Reglas de Asociación  
+Algoritmo Apriori:
+Un algoritmo clásico para la minería de reglas de asociación. Genera itemsets frecuentes utilizando una estrategia iterativa (nivel por nivel) y aplica el principio de reducción de candidatos, que dice que si un itemset es frecuente, todos sus sub-itemsets también deben ser frecuentes.[@borgelt2005efficient]
+
+# Descripción de la base de datos
+
+```{r db, echo=FALSE}
+db <- read.csv("estudiantes_fin.csv")
+```
+
+
+La base de datos y el diccionario de datos fueron descargados del sito de Datos Abiertos https://datos.gob.bo/dataset/encuesta-final-estudiantes-inclusion-digital esta conformado por `r ncol(db)` varaibles y `r nrow(db)` registross.
+
+A continuación el detallamos las variables que se utilizaran en el trabajo para la identificación de patrones.
+
+|Código	   | Descripción                                                                                                     |
+|----------|-----------------------------------------------------------------------------------------------------------------|
+|f7[1]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Google Académico]                    |
+|f7[2]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Buscadores (Google, yahoo u otros)]  | 
+|f7[3]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Photoshop]                           |
+|f7[4]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Google Drive]                        |
+|f7[5]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Correo electrónico]                  |
+|f7[6]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Wikis]                               |
+|f7[7]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Soundcloud]                          |
+|f7[8]	   | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Prezi]                               |
+|f7[other] | De los siguientes sitios web o aplicaciones en internet ¿Cuáles utilizas? [Otro]                                |
+|f8[SQ001] | De las siguientes redes sociales ¿cuáles utilizas? [Facebook]                                                   |
+|f8[SQ002] | De las siguientes redes sociales ¿cuáles utilizas? [You Tube]                                                   |
+|f8[SQ003] | De las siguientes redes sociales ¿cuáles utilizas? [WhatsApp]                                                   |
+|f8[SQ004] | De las siguientes redes sociales ¿cuáles utilizas? [Messenger]                                                  |
+|f8[SQ005] | De las siguientes redes sociales ¿cuáles utilizas? [Instagram]                                                  |
+|f8[SQ006] | De las siguientes redes sociales ¿cuáles utilizas? [Twitter]                                                    |
+|f8[SQ007] | De las siguientes redes sociales ¿cuáles utilizas? [LinkedIn]                                                   |
+|f8[SQ008] | De las siguientes redes sociales ¿cuáles utilizas? [Skype]                                                      |
+|f8[SQ009] | De las siguientes redes sociales ¿cuáles utilizas? [Snapchat]                                                   |
+|f8[SQ010] | De las siguientes redes sociales ¿cuáles utilizas? [Telegram]                                                   |
+|f8[SQ011] | De las siguientes redes sociales ¿cuáles utilizas? [Tic Toc]                                                    |
+|f8[SQ012] | De las siguientes redes sociales ¿cuáles utilizas? [Vimeo]                                                      |
+|f8[SQ013] | De las siguientes redes sociales ¿cuáles utilizas? [Line]                                                       |
+|f8[other] | De las siguientes redes sociales ¿cuáles utilizas? [Otro]                                                       |
+|g3[1]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Writer (Procesador de texto)]              |
+|g3[2]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Calc (Hoja de cálculo)]                    |
+|g3[3]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Draw (Editor gráfco)]                      |
+|g3[4]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Gimp (Edición de imágenes)]                |
+|g3[5]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Freemind (Mapas mentales)]                 |
+|g3[6]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Audacity (Editor de audio)]                |
+|g3[7]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Openshot (Editor de video )]               |
+|g3[8]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Wordpress (Sistema para crear sitiosweb)]  |
+|g3[9]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Sozi (Presentaciones)]                     |
+|g3[10]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Inkscape (Edición de imágenes vectoriales)]|
+|g3[11]	   | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Ninguno]                                   |
+|g3[other] | De los programas que se mencionan a continuación, ¿Cuáles utilizas? [Otro]                                      |
+
+
+# Metodología
+
+Para aplicar las reglas de asociación e identificación de patrones de uso de software se empleara los siguientes pasos:
+
+1. Preparación y limpieza de la base de datos
+Se procede a renombrar las variables para clarificar su uso, las 35 variables se convierten en variables binarias 
+
+```{r clean, echo=FALSE}
+data <- db %>%
+  mutate(google_acad = (f7.1. == "Sí")) %>%
+  mutate(search_engine = (f7.2. == "Sí")) %>%
+  mutate(photoshop = (f7.3. == "Sí")) %>%
+  mutate(google_drive = (f7.4. == "Sí")) %>%
+  mutate(email = (f7.5. == "Sí")) %>%
+  mutate(wiki = (f7.6. == "Sí")) %>%
+  mutate(soundcloud = (f7.7. == "Sí")) %>%
+  mutate(prezi = (f7.8. == "Sí")) %>%
+  mutate(web_other = (f7.other. != "")) %>%
+  mutate(facebook = (f8.SQ001. == "Sí")) %>%
+  mutate(youtube = (f8.SQ002. == "Sí")) %>%
+  mutate(whatsApp = (f8.SQ003. == "Sí")) %>%
+  mutate(messenger = (f8.SQ004. == "Sí")) %>%
+  mutate(instagram = (f8.SQ005. == "Sí")) %>%
+  mutate(twitter = (f8.SQ006. == "Sí")) %>%
+  mutate(linkedIn = (f8.SQ007. == "Sí")) %>%
+  mutate(skype = (f8.SQ008. == "Sí")) %>%
+  mutate(snapchat = (f8.SQ009. == "Sí")) %>%
+  mutate(telegram = (f8.SQ010. == "Sí")) %>%
+  mutate(tiktok = (f8.SQ011. == "Sí")) %>%
+  mutate(vimeo = (f8.SQ012. == "Sí")) %>%
+  mutate(line = (f8.SQ013. == "Sí")) %>%
+  mutate(rs_other = (f8.other. != "")) %>%
+  mutate(writer = (g3.1. == "Sí")) %>%
+  mutate(calc = (g3.2. == "Sí")) %>%
+  mutate(draw = (g3.3. == "Sí")) %>%
+  mutate(gimp = (g3.4. == "Sí")) %>%
+  mutate(freemind = (g3.5. == "Sí")) %>%
+  mutate(audacity = (g3.6. == "Sí")) %>%
+  mutate(openshot = (g3.7. == "Sí")) %>%
+  mutate(wordpress = (g3.8. == "Sí")) %>%
+  mutate(sozi = (g3.9. == "Sí")) %>%
+  mutate(inkscape = (g3.10. == "Sí")) %>%
+  mutate(none = (g3.11. == "Sí")) %>%
+  mutate(app_other = (g3.other. != "")) %>%
+  select(google_acad, search_engine, photoshop, google_drive, email, wiki,
+    soundcloud, prezi, web_other,
+    facebook, youtube, whatsApp, messenger, instagram, twitter,
+    linkedIn, skype, snapchat, telegram, tiktok, vimeo, line, rs_other,
+    writer, calc, draw, gimp, freemind, audacity, openshot, wordpress, sozi,
+    inkscape, none, app_other
+  )
+```
+
+|Código	       | Descripción                                       |
+|--------------|---------------------------------------------------|
+|google_acad   | Utiliza Google Académico                          |
+|search_engine | Utiliza Buscadores (Google, yahoo u otros)        | 
+|photoshop	   | Utiliza Photoshop                                 |
+|google_drive  | Utiliza Google Drive                              |
+|email	       | Utiliza Correo electrónico                        |
+|wiki	       | Utiliza Wikis                                     |
+|soundcloud	   | Utiliza Soundcloud                                |
+|prezi	       | Utiliza Prezi                                     |
+|web_other     | Utiliza Otra aplicacion web                       |
+|facebook      | Utiliza Facebook                                  |
+|youtube       | Utiliza You Tube                                  |
+|whatsApp      | Utiliza WhatsApp                                  |
+|messenger     | Utiliza Messenger                                 |
+|instagram     | Utiliza Instagram                                 |
+|twitter       | Utiliza Twitter                                   |
+|linkedIn      | Utiliza LinkedIn                                  |
+|skype         | Utiliza Skype                                     |
+|snapchat      | Utiliza Snapchat                                  |
+|telegram      | Utiliza Telegram                                  |
+|tiktok        | Utiliza Tic Toc                                   |
+|vimeo         | Utiliza Vimeo                                     |
+|line          | Utiliza Line                                      |
+|rs_other      | Utiliza Otra red social                           |
+|writer	       | Utiliza Writer (Procesador de texto)              |
+|calc	       | Utiliza Calc (Hoja de cálculo)                    |
+|draw	       | Utiliza Draw (Editor gráfico)                     |
+|gimp	       | Utiliza Gimp (Edición de imágenes)                |
+|freemind	   | Utiliza Freemind (Mapas mentales)                 |
+|audacity	   | Utiliza Audacity (Editor de audio)                |
+|openshot	   | Utiliza Openshot (Editor de vídeo )               |
+|wordpress	   | Utiliza Wordpress (Sistema para crear sitios web) |
+|sozi	       | Utiliza Sozi (Presentaciones)                     |
+|inkscape	   | Utiliza Inkscape (Edición de imágenes vectoriales)|
+|none	       | No Utiliza Ninguno software de ofimática          |
+|app_other     | Utiliza Otro aplicación de ofimática              |
+
+
+2. Construcción de la base de datos transaccional
+
+```{r build_transactional_db, echo=FALSE}
+mat <- as.matrix(data)
+df_trans <- as(mat, "transactions")
+```
+Luego de construir la base de datos transaccional utilizando R. Observamos las 5 primeras transacciones
+
+```{r inspect_db, echo=FALSE}
+inspect(head(df_trans))
+```
+
+3. Identificación de reglas de asociación con soporte y confianza adecuados
+
+Para un soporte de 20% y una confianza de 80% tenemos las 5 primeras reglas de asociación, ordenadas por lift
+observamos que las reglas tienen un lift mayor a 1.5 que nos indica una relación fuerte en uso de redes sociales.
+
+```{r build_transactional_db3, echo=FALSE, message=FALSE, results=FALSE}
+rules <- apriori(df_trans, parameter = list(supp = 0.2, conf = 0.8))
+rules <- sort(rules, by = "lift") %>% head(5)
+```
+
+```{r build_transactional_db4, echo=FALSE}
+inspect(rules)
+```
+
+
+4. Agrupación de reglas de asociación por categoría de software como ser ofimática, redes sociales, diseño, etc.
+El criterio de clasificación esta en función a las objetivos de la AGETIC en la Inclusión Digital, uno de los cuales es la adopción del software libre.
+
+|Aplicación Web | Red social  | Aplicación  |
+|---------------|-------------|-------------|
+|google_acad    | facebook    | writer      |
+|search_engine  | youtube     | calc        |
+|photoshop	    | whatsApp    | draw        |
+|google_drive   | messenger   | gimp        |
+|email	        | instagram   | freemind    |
+|wiki	        | twitter     | audacity    |
+|soundcloud	    | linkedIn    | openshot    |
+|prezi	        | skype       | wordpress   |
+|web_other      | snapchat    | sozi        |
+|               | telegram    | inkscape    |
+|               | tiktok      | none        |
+|               | vimeo       | app_other   |
+|               | line        |             |
+|               | rs_other    |             |
+
+# Resultados y análisis
+
+1. **Adopción de Software Libre**
+
+Con un soporte de 5% y confianza de 30%, observamos que se obtiene pocas asociaciones entre software de ofimática, esto se debe a que no existe una conexión entre los aplicativos del software libre, una de las razones es que la Inclusión Digital no esta impactando en la adopción del software, menos del 5% de los estudiantes expresan una preferencia del uso del software aplicativo.
+
+```{r software, echo=FALSE, message=FALSE, results=FALSE}
+parameter <- c(supp = 0.05, conf = 0.3)
+rules1 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "writer"))
+rules1 <- sort(rules1, by = "lift") %>% head(20)
+rules2 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "calc"))
+rules2 <- sort(rules2, by = "lift") %>% head(20)
+rules3 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "draw"))
+rules3 <- sort(rules3, by = "lift") %>% head(20)
+rules4 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "gimp"))
+rules4 <- sort(rules4, by = "lift") %>% head(20)
+rules5 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "freemind"))
+rules5 <- sort(rules5, by = "lift") %>% head(20)
+rules6 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "audacity"))
+rules6 <- sort(rules6, by = "lift") %>% head(20)
+rules7 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "openshot"))
+rules7 <- sort(rules7, by = "lift") %>% head(20)
+rules8 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "wordpress"))
+rules8 <- sort(rules8, by = "lift") %>% head(20)
+rules9 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "sozi"))
+rules9 <- sort(rules9, by = "lift") %>% head(20)
+rules10 <- apriori(df_trans, parameter = parameter,
+                   appearance = list(default = "lhs", rhs = "inkscape"))
+rules10 <- sort(rules10, by = "lift") %>% head(20)
+```
+
+`r if (length(rules1) > 0) {kbl(as(rules1, "data.frame"), caption = "writer") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules2) > 0) {kbl(as(rules2, "data.frame"), caption = "calc") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules3) > 0) {kbl(as(rules3, "data.frame"), caption = "draw") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules4) > 0) {kbl(as(rules4, "data.frame"), caption = "gimp") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules5) > 0) {kbl(as(rules5, "data.frame"), caption = "freemind") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules6) > 0) {kbl(as(rules6, "data.frame"), caption = "audacity") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules7) > 0) {kbl(as(rules7, "data.frame"), caption = "openshot") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules8) > 0) {kbl(as(rules8, "data.frame"), caption = "wordpress") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules9) > 0) {kbl(as(rules9, "data.frame"), caption = "sozi") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+`r if (length(rules10) > 0) {kbl(as(rules10, "data.frame"), caption = "inkscape") %>% kable_styling(font_size = 10, latex_options = c("striped", "hold_position")) }`
+
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+
+2. **Redes Sociales**
+
+Tomando un soporte de 20% y una confianza de 70% vemos que para el caso de las redes sociales las reglas de asociación presentan una mayor complementación entre ellas lo que implica que los estudiantes usan mas de una red social y que su empleo es frecuente. Siendo facebook, youtube, whatsApp y messenger las redes que mas se usan con relaciones fuertes
+
+```{r rrss, echo=FALSE, message=FALSE, results=FALSE}
+parameter <- c(supp = 0.20, conf = 0.7)
+rules1 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "facebook"))
+rules1 <- sort(rules1, by = "lift") %>% head(20)
+rules2 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "youtube"))
+rules2 <- sort(rules2, by = "lift") %>% head(20)
+rules3 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "whatsApp"))
+rules3 <- sort(rules3, by = "lift") %>% head(20)
+rules4 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "messenger"))
+rules4 <- sort(rules4, by = "lift") %>% head(20)
+rules5 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "instagram"))
+rules5 <- sort(rules5, by = "lift") %>% head(20)
+rules6 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "twitter"))
+rules6 <- sort(rules6, by = "lift") %>% head(20)
+rules7 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "linkedIn"))
+rules7 <- sort(rules7, by = "lift") %>% head(20)
+rules8 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "skype"))
+rules8 <- sort(rules8, by = "lift") %>% head(20)
+rules9 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "snapchat"))
+rules9 <- sort(rules9, by = "lift") %>% head(20)
+rules10 <- apriori(df_trans, parameter = parameter,
+                   appearance = list(default = "lhs", rhs = "telegram"))
+rules10 <- sort(rules10, by = "lift") %>% head(20)
+rules11 <- apriori(df_trans, parameter = parameter,
+                   appearance = list(default = "lhs", rhs = "tiktok"))
+rules11 <- sort(rules11, by = "lift") %>% head(20)
+rules12 <- apriori(df_trans, parameter = parameter,
+                   appearance = list(default = "lhs", rhs = "vimeo"))
+rules12 <- sort(rules12, by = "lift") %>% head(20)
+rules13 <- apriori(df_trans, parameter = parameter,
+                   appearance = list(default = "lhs", rhs = "line"))
+rules13 <- sort(rules13, by = "lift") %>% head(20)
+```
+`r if (length(rules1) > 0) kbl(as(rules1, "data.frame"), caption = "facebook") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules2) > 0) kbl(as(rules2, "data.frame"), caption = "youtube") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules3) > 0) kbl(as(rules3, "data.frame"), caption = "whatsApp") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules4) > 0) kbl(as(rules4, "data.frame"), caption = "messenger") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules5) > 0) kbl(as(rules5, "data.frame"), caption = "instagram") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules6) > 0) kbl(as(rules6, "data.frame"), caption = "twitter") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules7) > 0) kbl(as(rules7, "data.frame"), caption = "linkedIn") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules8) > 0) kbl(as(rules8, "data.frame"), caption = "skype") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules9) > 0) kbl(as(rules9, "data.frame"), caption = "snapchat") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules10) > 0) kbl(as(rules10, "data.frame"), caption = "telegram") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules11) > 0) kbl(as(rules11, "data.frame"), caption = "tiktok") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules12) > 0) kbl(as(rules12, "data.frame"), caption = "vimeo") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules13) > 0) kbl(as(rules13, "data.frame"), caption = "line") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+
+
+3. **Aplicaciones Web**
+
+Tomando un soporte de 10% y una confianza de 40% observamos que google académico y los buscadores son reglas asociadas con la redes sociales, mostrando que tiene una asociación débil con el software de libre (ofimática.)
+
+
+```{r app_web, echo=FALSE, message=FALSE, results=FALSE}
+
+parameter <- c(supp = 0.1, conf = 0.4)
+rules1 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "google_acad"))
+rules1 <- sort(rules1, by = "lift") %>% head(20)
+rules2 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "search_engine"))
+rules2 <- sort(rules2, by = "lift") %>% head(20)
+rules3 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "photoshop"))
+rules3 <- sort(rules3, by = "lift") %>% head(20)
+rules4 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "google_drive"))
+rules4 <- sort(rules4, by = "lift") %>% head(20)
+rules5 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "email"))
+rules5 <- sort(rules5, by = "lift") %>% head(20)
+rules6 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "wiki"))
+rules6 <- sort(rules6, by = "lift") %>% head(20)
+rules7 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "soundcloud"))
+rules7 <- sort(rules7, by = "lift") %>% head(20)
+rules8 <- apriori(df_trans, parameter = parameter,
+                  appearance = list(default = "lhs", rhs = "prezi"))
+rules8 <- sort(rules8, by = "lift") %>% head(20)
+```
+
+`r if (length(rules1) > 0) kbl(as(rules1, "data.frame"), caption = "google acad") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules1) > 0) kbl(as(rules1, "data.frame"), caption = "search engine") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules3) > 0) kbl(as(rules3, "data.frame"), caption = "photoshop") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules4) > 0) kbl(as(rules4, "data.frame"), caption = "google drive") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules5) > 0) kbl(as(rules5, "data.frame"), caption = "email") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules6) > 0) kbl(as(rules6, "data.frame"), caption = "wiki") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules7) > 0) kbl(as(rules7, "data.frame"), caption = "soundcloud") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+`r if (length(rules8) > 0) kbl(as(rules8, "data.frame"), caption = "prezi") %>% kable_styling(font_size = 8, latex_options = c("striped", "hold_position"))`
+
+\
+\
+\
+\
+\
+\
+\
+
+
+# Conclusiones y recomendaciones
+
+Luego de obtener las reglas de asociación en las tres categorías de software: aplicaciones web, redes sociales y software de ofimática se concluye que el proyecto de Inclusión Digital:
+
+- Tiene un impacto menor al 5% en la adopción del software libre (ofimática), esto puede entenderse por la naturaleza de los cursos que imparte el proceso de Inclusión Digital.
+- El uso de las redes sociales es un componente transversal en la inclusión digital, se observa bastantes asociación lo que nos lleva a implicar que los estudiantes usan varias redes sociales.
+- El uso de aplicaciones web versus el software de ofimática es mayor, debido al crecimiento del empleo de tecnología web.
+- El proyecto de Inclusión Digital tiene impacto en aplicación que utilizan el Internet como medio de comunicación como son las redes sociales y las aplicaciones web.
+
+A partir de la encuesta de Inclusión Digital se pudo identificar la baja adopción del software libre y el creciente uso de aplicaciones con tecnología web.
+
+Se recomiendo focalizar el proyecto de Inclusión Digital al empleo de software libre considerando si el software que se pretende adoptar cumple con las necesidades mínimas que requieren los estudiantes, siendo la usabilidad una posible justificación de la baja adopción del software libre.
+
+Finalmente se recomienda realizar un estudio parecido empleando las encuesta inicial de Inclusión Digital previas al proceso de Inclusión Digital con el objetivo de ver la linea base del uso de software.
+
+# Referencias
+
+
