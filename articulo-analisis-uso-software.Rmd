@@ -1,5 +1,6 @@
 ---
 title: "Análisis del uso de software en la Encuesta de Inclusión Digital utilizando reglas de asociación"
+subtitle: "https://github.com/milton-loayza/mad-435-articulo"
 author: Milton Loayza Chumacero
 date: 27 de junio de 2024
 bibliography: bibliografia.bib  
